@@ -1,14 +1,16 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:news_app/core/constants/app_constants.dart';
 import 'package:news_app/core/routing/app_routes.dart';
+import 'package:news_app/core/styles/app_colors.dart';
 import 'package:news_app/core/styles/app_text_styles.dart';
 import 'package:news_app/core/widgets/spacing_widget.dart';
+import 'package:news_app/features/home_screen/cubit/home_cubit.dart';
+import 'package:news_app/features/home_screen/cubit/home_states.dart';
 import 'package:news_app/features/home_screen/models/top_head_lines_model.dart';
-import 'package:news_app/features/home_screen/sevices/home_screen_services.dart';
-import 'package:news_app/features/home_screen/widgets/article_card_widget.dart';
 import 'package:news_app/features/home_screen/widgets/custom_category_item_widget.dart';
 import 'package:news_app/features/home_screen/widgets/search_text_field.dart';
 import 'package:news_app/features/home_screen/widgets/top_headline_item_widget.dart';
@@ -24,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    context.read<HomeCubit>().GetTopHeadLines();
   }
 
   @override
@@ -48,12 +51,16 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: FutureBuilder(
-        future: HomeScreenServices.getTopHeadLineArticles(),
-        builder: (context, asyncSnapshot) {
-          if (asyncSnapshot.hasData) {
-            ArticlesModel topHeadLinesModel =
-                asyncSnapshot.data as ArticlesModel;
+      body: BlocBuilder<HomeCubit, HomeStates>(
+        builder: (context, state) {
+          if (state is LoadingTopHeadLinesState) {
+            return Center(
+              child: CircularProgressIndicator(color: AppColors.black),
+            );
+          } else if (state is ErrorTopHeadLinesState) {
+            return Center(child: Text('Error: ${state.errorMessage}'));
+          } else if (state is SuccessTopHeadLinesState) {
+            ArticlesModel topHeadLinesModel = state.topHeadLinesModel;
             return Column(
               children: [
                 HeightSpace(16.h),
@@ -134,17 +141,35 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: EdgeInsets.symmetric(horizontal: 10.w),
                     child: ListView.builder(
                       itemCount: topHeadLinesModel.articles?.length ?? 0,
-                      itemBuilder: (BuildContext context, int index) {
-                        Article article = topHeadLinesModel.articles![index];
-                        return ArticleCardWidget(article: article);
+                      itemBuilder: (context, index) {
+                        return TopHeadlineItemWidget(
+                          title:
+                              topHeadLinesModel.articles?[index].title ??
+                              "No Title",
+                          imageUrl:
+                              topHeadLinesModel.articles?[index].urlToImage ??
+                              "",
+                          authorName:
+                              topHeadLinesModel.articles?[index].author ??
+                              "Unknown Author",
+                          date:
+                              topHeadLinesModel.articles?[index].publishedAt !=
+                                  null
+                              ? DateFormat('dd MMM yyyy').format(
+                                  topHeadLinesModel
+                                      .articles![index]
+                                      .publishedAt!,
+                                )
+                              : "Unknown Date",
+                        );
                       },
                     ),
                   ),
                 ),
               ],
             );
-          } else if (asyncSnapshot.hasError) {
-            return Center(child: Text('Error: ${asyncSnapshot.error}'));
+          } else if (state is ErrorTopHeadLinesState) {
+            return Center(child: Text('Error: ${state.errorMessage}'));
           } else {
             return Center(child: CircularProgressIndicator());
           }

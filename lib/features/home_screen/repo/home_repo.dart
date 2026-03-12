@@ -4,8 +4,8 @@ import 'package:news_app/core/networking/api_endpoints.dart';
 import 'package:news_app/core/networking/dio_helper.dart';
 import 'package:news_app/features/home_screen/models/top_head_lines_model.dart';
 
-class HomeScreenServices {
-  static Future<Object> getTopHeadLineArticles() async {
+class HomeRepo {
+   Future<Object> getTopHeadLineArticles() async {
     try {
       final response = await DioHelper.getRequest(
         endpoint: ApiEndpoints.topHeadlinesEndpoint,
